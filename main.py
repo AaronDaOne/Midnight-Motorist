@@ -376,7 +376,7 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
     pg.mixer.music.stop()
     CAR_SOUND.stop()
     set_high_score(score)
-    pre_game_loop(show_overlay=show_overlay)
+    pre_game_loop(show_overlay=show_overlay, chr_pos=chr_pos)
 
 
 ###############################################################################################################
@@ -417,9 +417,14 @@ def pre_game_draw(chr_loc, bg_scroll, show_overlay, d_countdown, countdown_timer
   pg.display.update()
 
 
-def pre_game_loop(run = True, show_overlay = True):
+def pre_game_loop(
+    run = True,
+    show_overlay = True,
+    chr_pos = pg.Vector2(ra.randint(CHR_MIN_POS[0], CHR_MAX_POS[0]), ra.randint(CHR_MIN_POS[1], CHR_MAX_POS[1]))
+    ):
+  
   CLOCK = pg.time.Clock()
-  chr_pos = pg.Vector2(ra.randint(CHR_MIN_POS[0], CHR_MAX_POS[0]), ra.randint(CHR_MIN_POS[1], CHR_MAX_POS[1]))
+  chr_pos
 
   scroll_speed = 2
   bg_scroll = 0
