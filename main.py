@@ -3,6 +3,7 @@ import sys
 import pygame as pg
 import random as ra
 from time import perf_counter
+from imports import src
 
 # SCREEN_SIZE = 1600, 900
 SCREEN_SIZE = 1920, 1080
@@ -16,41 +17,41 @@ SAVE_FOLDER_PATH = os.path.join(os.getenv("APPDATA"), "midnight-motorist")
 
 # assets
 
-FONT = pg.font.Font(os.path.join("assets", "textures", "font", "fnaf_new.ttf"), SCREEN_SIZE[0]//32)
+FONT = pg.font.Font(src.FONT, SCREEN_SIZE[0]//32)
 
-BG_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets","textures","main_road.png")).convert(),SCREEN_SIZE)
+BG_SPR = pg.transform.smoothscale(pg.image.load(src.MAIN_ROAD).convert(),SCREEN_SIZE)
 # CHR_SPR = pg.image.load(os.path.join("assets", "textures", "chr", "01.png"))
 # CHR_SPR = pg.transform.smoothscale(CHR_SPR, pg.Vector2(CHR_SPR.get_size())*0.8)
 # CHR_SPRS = [pg.transform.rotate(CHR_SPR, i*6) for i in range(60)] 
 CHR_SPRS = list(
   pg.transform.smoothscale(
     pg.image.load(
-      os.path.join("assets", "textures", "chr", "anim", f"{i}.png")
+      src.CHR_SPRS[i]
     ).convert_alpha(),
     (SCREEN_SIZE[0] * 0.07, SCREEN_SIZE[0] * 0.07)
   ) for i in range(20)
 )
-LIVES_SPR = pg.image.load(os.path.join("assets", "textures", "chr", "5.png")).convert_alpha()
+LIVES_SPR = pg.image.load(src.LIVES).convert_alpha()
 NPC_F_SPR = pg.transform.smoothscale(
-  pg.image.load(os.path.join("assets", "textures", "npc", "npc1.png")).convert_alpha(),
+  pg.image.load(src.NPC).convert_alpha(),
   (SCREEN_SIZE[0] * 0.07, SCREEN_SIZE[0] * 0.07)
 )
 NPC_B_SPR = pg.transform.rotate(NPC_F_SPR, 180)
-OVERLAY_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "overlay.png")).convert_alpha(), SCREEN_SIZE)
+OVERLAY_SPR = pg.transform.smoothscale(pg.image.load(src.OVERLAY).convert_alpha(), SCREEN_SIZE)
 
-CD1_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "1cd2.png")).convert_alpha(), SCREEN_SIZE)
-CD2_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "2cd2.png")).convert_alpha(), SCREEN_SIZE)
-CD3_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "3cd2.png")).convert_alpha(), SCREEN_SIZE)
-GO_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "GO2.png")).convert_alpha(), SCREEN_SIZE)
+CD1_SPR = pg.transform.smoothscale(pg.image.load(src.CD1).convert_alpha(), SCREEN_SIZE)
+CD2_SPR = pg.transform.smoothscale(pg.image.load(src.CD2).convert_alpha(), SCREEN_SIZE)
+CD3_SPR = pg.transform.smoothscale(pg.image.load(src.CD3).convert_alpha(), SCREEN_SIZE)
+GO_SPR = pg.transform.smoothscale(pg.image.load(src.GO).convert_alpha(), SCREEN_SIZE)
 
-TITLE_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "title.png")).convert_alpha(), (SCREEN_SIZE[0], SCREEN_SIZE[1]/2))
-TITLE_GLOW_SPR = pg.transform.smoothscale(pg.image.load(os.path.join("assets", "textures", "title_glow.png")).convert_alpha(), (SCREEN_SIZE[0], SCREEN_SIZE[1]/2))
+TITLE_SPR = pg.transform.smoothscale(pg.image.load(src.TITLE).convert_alpha(), (SCREEN_SIZE[0], SCREEN_SIZE[1]/2))
+TITLE_GLOW_SPR = pg.transform.smoothscale(pg.image.load(src.TITLE_GLOW).convert_alpha(), (SCREEN_SIZE[0], SCREEN_SIZE[1]/2))
 
-pg.mixer.music.load(os.path.join("assets", "SFX", "240 Bits Per Mile.mp3"))
-CAR_SOUND = pg.mixer.Sound(os.path.join("assets", "SFX", "drive.wav"))
-HIT_SOUND = pg.mixer.Sound(os.path.join("assets", "SFX", "crash.wav"))
-COUNTDOWN_SOUND = pg.mixer.Sound(os.path.join("assets", "SFX", "countdown.wav"))
-GO_SOUND = pg.mixer.Sound(os.path.join("assets", "SFX", "go.wav"))
+pg.mixer.music.load(src.SFX_MUSIC)
+CAR_SOUND = pg.mixer.Sound(src.SFX_DRIVE)
+HIT_SOUND = pg.mixer.Sound(src.SFX_CRASH)
+COUNTDOWN_SOUND = pg.mixer.Sound(src.SFX_COUNTDOWN)
+GO_SOUND = pg.mixer.Sound(src.SFX_GO)
 
 #########################
 
