@@ -2,3 +2,6 @@ assets
 __pycache__
 versions
 compiler.bat
+build
+dist
+*.spec
