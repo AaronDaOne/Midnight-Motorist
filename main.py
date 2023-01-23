@@ -310,7 +310,10 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
           run = False
 
     keys_pressed = pg.key.get_pressed()
-    chr_pos = pg.Vector2(handle_x_movement(chr_pos[0], keys_pressed, d_movement), handle_y_movement(chr_pos[1], keys_pressed, d_movement))
+    chr_pos = pg.Vector2(
+      handle_x_movement(chr_pos[0], keys_pressed, d_movement),
+      handle_y_movement(chr_pos[1], keys_pressed, d_movement)
+    )
     player_hitbox = get_hitbox(chr_pos)
 
     # npc spawner
@@ -447,7 +450,8 @@ def pre_game_loop(
           match e.key:
 
             case pg.K_SPACE:
-              countdown_timer = perf_counter()
+              if countdown_timer == 0:
+                countdown_timer = perf_counter()
 
             # case pg.K_F2:
             #   run = False
