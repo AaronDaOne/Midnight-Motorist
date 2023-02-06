@@ -1,7 +1,8 @@
-assets
 __pycache__
-versions
-compiler.bat
+.vs
+assets
 build
 dist
+versions
+compiler.bat
 *.spec

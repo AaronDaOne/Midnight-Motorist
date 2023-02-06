@@ -84,11 +84,12 @@ NPC_Y_SPAWN_POINTS = [
   (SCREEN_SIZE[1]/20*3, True),
   (SCREEN_SIZE[1]/20*5, True),
   (SCREEN_SIZE[1]/20*7, True),
-  (SCREEN_SIZE[1]/20*9, False),
+  (SCREEN_SIZE[1]/20*9, True),
   (SCREEN_SIZE[1]/20*11, False),
   (SCREEN_SIZE[1]/20*13, False),
   (SCREEN_SIZE[1]/20*15, False),
-  (SCREEN_SIZE[1]/20*17, False)
+  (SCREEN_SIZE[1]/20*17, False),
+  (SCREEN_SIZE[1]/20*19, False)
 ]
 
 def get_high_score():
@@ -134,7 +135,7 @@ class Npc:
   def __init__(self) -> None:
     pos = [NPC_X_SPAWN_POINT, ra.choice(NPC_Y_SPAWN_POINTS)]
     self.pos = pg.Vector2(pos[0], pos[1][0])
-    self.is_forward =  pos[1][1]
+    self.is_forward = pos[1][1]
     self.speed = ra.randint(1,4)
     self.hitbox = self.get_hitbox()
 
