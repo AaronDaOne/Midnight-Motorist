@@ -1,6 +1,7 @@
 import os
 import sys
 import pygame as pg
+import pygame._sdl2.controller as controller
 import random as ra
 from time import perf_counter
 from imports import src
@@ -9,6 +10,8 @@ from imports import src
 SCREEN_SIZE = 1920, 1080
 
 pg.init()
+
+C_DEAD_ZONE = [0.2, 0.2]
 
 WIN = pg.display.set_mode(SCREEN_SIZE, flags= pg.NOFRAME | pg.FULLSCREEN, vsync=1)
 FPS = 120
@@ -131,6 +134,9 @@ def set_high_score(score):
   with open(os.path.join(SAVE_FOLDER_PATH, "score"), "a+") as f:
     f.write(f"\n{score}\n")
 
+def get_controller():
+  return controller.Controller(0)
+
 class Npc:
   def __init__(self) -> None:
     pos = [NPC_X_SPAWN_POINT, ra.choice(NPC_Y_SPAWN_POINTS)]
@@ -162,58 +168,27 @@ class Npc:
   def get_hitbox(self):
     return self.pos[0]-NPC_SIZE[0], self.pos[1]-NPC_SIZE[1], self.pos[0]+NPC_SIZE[0], self.pos[1]+NPC_SIZE[1]
 
-def handle_x_movement(chr_x, keys_pressed, d_time):
-    if keys_pressed[pg.K_a]:
-      next_x_pos = chr_x - CHR_MOVEMENT_SPEED * d_time
 
-      return max(CHR_MIN_POS[0], next_x_pos)
-
-      # if next_x_pos < 0:
-      #   return 0
-      # else:
-      #   return next_x_pos
-
-    elif keys_pressed[pg.K_d]:
-      next_x_pos = chr_x + CHR_MOVEMENT_SPEED * d_time
-
-      return min(CHR_MAX_POS[0], next_x_pos)
-
-      # if next_x_pos > CHR_MAX_POS[0]:
-      #   return CHR_MAX_POS[0]
-      # else:
-      #   return next_x_pos
+def handle_movement(pos, keys, delta):
+  vel = pg.Vector2()
     
-    else:
-      return chr_x
+  if keys[pg.K_w]:
+    vel.y -= 1
+  if keys[pg.K_s]:
+    vel.y += 1
+  if keys[pg.K_a]:
+    vel.x -= 1
+  if keys[pg.K_d]:
+    vel.x += 1
 
+  next_pos :pg.Vector2 = pos + (vel*CHR_MOVEMENT_SPEED * delta)
 
-def handle_y_movement(chr_y, keys_pressed, d_time):
-    if keys_pressed[pg.K_w]:
-      next_y_pos = chr_y - CHR_MOVEMENT_SPEED * d_time
+  next_pos.x = max(min(next_pos.x, CHR_MAX_POS[0]), CHR_MIN_POS[0])
+  next_pos.y = max(min(next_pos.y, CHR_MAX_POS[1]), CHR_MIN_POS[1])
 
-      return max(CHR_MIN_POS[1], next_y_pos)
-
-      # if next_y_pos < 0:
-      #   return 0
-      # else:
-      #   return next_y_pos
-
-    elif keys_pressed[pg.K_s]:
-      next_y_pos = chr_y + CHR_MOVEMENT_SPEED * d_time
-
-      return min(CHR_MAX_POS[1], next_y_pos)
-
-      # if next_y_pos > CHR_MAX_POS[1]:
-      #   return CHR_MAX_POS[1]
-      # else:
-      #   return next_y_pos
-    
-    else:
-      return chr_y
-
+  return next_pos
 
 def get_hitbox(chr_pos):
-  # return chr_pos[0] - CHR_SIZE[0], chr_pos[1] - CHR_SIZE[1], chr_pos[0] + CHR_SIZE[0]*2, chr_pos[1] + CHR_SIZE[1]*2
   return *(chr_pos - CHR_SIZE), chr_pos[0] + CHR_SIZE[0], chr_pos[1] + CHR_SIZE[1]
 
 
@@ -311,10 +286,7 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
           run = False
 
     keys_pressed = pg.key.get_pressed()
-    chr_pos = pg.Vector2(
-      handle_x_movement(chr_pos[0], keys_pressed, d_movement),
-      handle_y_movement(chr_pos[1], keys_pressed, d_movement)
-    )
+    chr_pos = handle_movement(chr_pos, keys_pressed, d_movement)
     player_hitbox = get_hitbox(chr_pos)
 
     # npc spawner
@@ -473,12 +445,8 @@ def pre_game_loop(
         break
 
     keys_pressed = pg.key.get_pressed()
+    chr_pos = handle_movement(chr_pos, keys_pressed, d_movement)
 
-    chr_pos = pg.Vector2(
-      handle_x_movement(chr_pos[0], keys_pressed, d_movement),
-      handle_y_movement(chr_pos[1], keys_pressed, d_movement)
-    )
-    # scroll the background
     if bg_scroll < -SCREEN_SIZE[0]:
       bg_scroll = 0
     else:
