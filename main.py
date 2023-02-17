@@ -83,7 +83,7 @@ LIVES_Y_POS = (SCREEN_SIZE[1]/10*9.7)-LIVES_SPR.get_height()
 
 NPC_X_SPAWN_POINT = SCREEN_SIZE[0]*1.2
 NPC_Y_SPAWN_POINTS = [
-  (SCREEN_SIZE[1]/20, True),
+  (SCREEN_SIZE[1]/20*1.2, True),
   (SCREEN_SIZE[1]/20*3, True),
   (SCREEN_SIZE[1]/20*5, True),
   (SCREEN_SIZE[1]/20*7, True),
@@ -92,7 +92,7 @@ NPC_Y_SPAWN_POINTS = [
   (SCREEN_SIZE[1]/20*13, False),
   (SCREEN_SIZE[1]/20*15, False),
   (SCREEN_SIZE[1]/20*17, False),
-  (SCREEN_SIZE[1]/20*19, False)
+  (SCREEN_SIZE[1]/20*18.8, False)
 ]
 
 def get_high_score():
@@ -131,8 +131,8 @@ def set_high_score(score):
   if not os.path.exists(SAVE_FOLDER_PATH):
     os.mkdir(SAVE_FOLDER_PATH)
 
-  with open(os.path.join(SAVE_FOLDER_PATH, "score"), "a+") as f:
-    f.write(f"\n{score}\n")
+  with open(os.path.join(SAVE_FOLDER_PATH, "score"), "w") as f:
+    f.write(f"{score}")
 
 def get_controller():
   return controller.Controller(0)
@@ -351,7 +351,8 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
   if lost:
     pg.mixer.music.stop()
     CAR_SOUND.stop()
-    set_high_score(score)
+    if score > get_high_score():
+      set_high_score(score)
     pre_game_loop(show_overlay=show_overlay, chr_pos=chr_pos)
 
 
