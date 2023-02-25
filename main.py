@@ -1,7 +1,6 @@
 import os
 import sys
 import pygame as pg
-import pygame._sdl2.controller as controller
 import random as ra
 from time import perf_counter
 from imports import src
@@ -11,7 +10,7 @@ SCREEN_SIZE = 1920, 1080
 
 pg.init()
 
-C_DEAD_ZONE = [0.2, 0.2]
+C_DEAD_ZONE = 0.2
 
 WIN = pg.display.set_mode(SCREEN_SIZE, flags= pg.NOFRAME | pg.FULLSCREEN, vsync=1)
 FPS = 120
@@ -134,8 +133,17 @@ def set_high_score(score):
   with open(os.path.join(SAVE_FOLDER_PATH, "score"), "w") as f:
     f.write(f"{score}")
 
-def get_controller():
-  return controller.Controller(0)
+def get_joystick():
+  if pg.joystick.get_count() > 0:
+    return pg.joystick.Joystick(0)
+  return  
+
+def change_volume(amount):
+  pg.mixer.music.set_volume(pg.mixer.music.get_volume()+amount)
+  CAR_SOUND.set_volume(CAR_SOUND.get_volume()+amount)
+  HIT_SOUND.set_volume(HIT_SOUND.get_volume()+amount)
+  COUNTDOWN_SOUND.set_volume(COUNTDOWN_SOUND.get_volume()+amount)
+  GO_SOUND.set_volume(GO_SOUND.get_volume()+amount)
 
 class Npc:
   def __init__(self) -> None:
@@ -143,7 +151,7 @@ class Npc:
     self.pos = pg.Vector2(pos[0], pos[1][0])
     self.is_forward = pos[1][1]
     self.speed = ra.randint(1,4)
-    self.hitbox = self.get_hitbox()
+    self.hitbox = get_hitbox(self.pos, NPC_SIZE)
 
   def update_pos(self, d_time, chr_speed):
     if self.is_forward:
@@ -151,25 +159,23 @@ class Npc:
     else:
       self.pos[0] -= (chr_speed + self.speed) * d_time
 
-    self.hitbox = self.get_hitbox()
-    # if self.pos[0] < -200:
-      # self.pos[0] = 2000
+    self.hitbox = get_hitbox(self.pos, NPC_SIZE)
 
-  def check_player_collision(self, player):
-    x_collision = self.hitbox[0] > player[2] or self.hitbox[2] < player[0]
-    y_collision = self.hitbox[1] > player[3] or self.hitbox[3] < player[1]
+def check_collision(a, b) -> bool:
+  x_not_colliding = a[2] < b[0] or b[2] < a[0]
+  y_not_colliding = a[3] < b[1] or b[3] < a[1]
 
+  # 0 is length of x
+  # 1 is length of y
+  # 2 is length of x + size
+  # 3 is length of y + size
 
-    if x_collision or y_collision:
-      return False
-    else:
-      return True
+  if x_not_colliding or y_not_colliding:
+    return False
+  else:
+    return True
 
-  def get_hitbox(self):
-    return self.pos[0]-NPC_SIZE[0], self.pos[1]-NPC_SIZE[1], self.pos[0]+NPC_SIZE[0], self.pos[1]+NPC_SIZE[1]
-
-
-def handle_movement(pos, keys, delta):
+def handle_movement(pos, keys, joystick, delta):
   vel = pg.Vector2()
     
   if keys[pg.K_w]:
@@ -181,6 +187,16 @@ def handle_movement(pos, keys, delta):
   if keys[pg.K_d]:
     vel.x += 1
 
+  if joystick != None:
+    j_input = pg.Vector2(
+      joystick.get_axis(pg.CONTROLLER_AXIS_LEFTX),
+      joystick.get_axis(pg.CONTROLLER_AXIS_LEFTY)
+    )
+
+    if j_input.length() > C_DEAD_ZONE:
+      vel = pg.Vector2()
+      vel += j_input
+
   next_pos :pg.Vector2 = pos + (vel*CHR_MOVEMENT_SPEED * delta)
 
   next_pos.x = max(min(next_pos.x, CHR_MAX_POS[0]), CHR_MIN_POS[0])
@@ -188,9 +204,8 @@ def handle_movement(pos, keys, delta):
 
   return next_pos
 
-def get_hitbox(chr_pos):
-  return *(chr_pos - CHR_SIZE), chr_pos[0] + CHR_SIZE[0], chr_pos[1] + CHR_SIZE[1]
-
+def get_hitbox(pos, size):
+  return *(pos - size), pos[0] + size[0], pos[1] + size[1]
 
 def draw(chr_loc, bg_scroll, npc_list:list[Npc], speed_txt, score_txt, hitbox, fps_txt, show_overlay, lives, spr_hit_count):
   WIN.blit(BG_SPR,(bg_scroll,0))
@@ -227,7 +242,7 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
 
   # character state
   chr_pos
-  player_hitbox = get_hitbox(chr_pos)
+  player_hitbox = get_hitbox(chr_pos, CHR_SIZE)
   chr_speed = 1
   score = 0
   lives = 5
@@ -253,7 +268,10 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
   while run and not lost:
     d_time = CLOCK.tick(FPS)
     d_movement = d_time / 16
-
+    joystick = get_joystick()
+    if joystick != None:
+      if joystick.get_button(6):
+        lost = True
     for e in pg.event.get():
       match e.type:
         
@@ -261,14 +279,10 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
           
           match e.key:
             case pg.K_UP:
-              pg.mixer.music.set_volume(pg.mixer.music.get_volume()+0.1)
-              CAR_SOUND.set_volume(CAR_SOUND.get_volume()+0.1)
-              HIT_SOUND.set_volume(HIT_SOUND.get_volume()+0.1)
+              change_volume(0.05)
 
             case pg.K_DOWN:
-              pg.mixer.music.set_volume(pg.mixer.music.get_volume()-0.1)
-              CAR_SOUND.set_volume(CAR_SOUND.get_volume()-0.1)
-              HIT_SOUND.set_volume(HIT_SOUND.get_volume()-0.1)
+              change_volume(-0.05)
 
             case pg.K_F2:
               lost = True
@@ -286,8 +300,8 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
           run = False
 
     keys_pressed = pg.key.get_pressed()
-    chr_pos = handle_movement(chr_pos, keys_pressed, d_movement)
-    player_hitbox = get_hitbox(chr_pos)
+    chr_pos = handle_movement(chr_pos, keys_pressed, joystick, d_movement)
+    player_hitbox = get_hitbox(chr_pos, CHR_SIZE)
 
     # npc spawner
     if npc_timer > 200 / chr_speed:
@@ -302,7 +316,8 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
       if npc.pos[0] < -500:
         npc_list.pop(n)
       # got hit
-      elif npc.check_player_collision(player_hitbox):
+      # elif npc.check_player_collision(player_hitbox):
+      elif check_collision(player_hitbox, npc.hitbox):
         npc_list.pop(n)
         chr_speed = 1
         lives -= 1
@@ -417,6 +432,13 @@ def pre_game_loop(
   while run:
     d_time = CLOCK.tick_busy_loop(FPS)
     d_movement = d_time / 16
+    joystick = get_joystick()
+    if joystick != None:
+      if joystick.get_button(7):
+        # Start
+        if countdown_timer == 0:
+          countdown_timer = perf_counter()
+
     for e in pg.event.get():
       match e.type:
 
@@ -424,12 +446,18 @@ def pre_game_loop(
           match e.key:
 
             case pg.K_SPACE:
+              # Start
               if countdown_timer == 0:
                 countdown_timer = perf_counter()
 
             # case pg.K_F2:
             #   run = False
             #   start_game = True
+            case pg.K_UP:
+              change_volume(0.05)
+
+            case pg.K_DOWN:
+              change_volume(-0.05)
 
             case pg.K_F6:
               pass
@@ -446,7 +474,7 @@ def pre_game_loop(
         break
 
     keys_pressed = pg.key.get_pressed()
-    chr_pos = handle_movement(chr_pos, keys_pressed, d_movement)
+    chr_pos = handle_movement(chr_pos, keys_pressed, joystick, d_movement)
 
     if bg_scroll < -SCREEN_SIZE[0]:
       bg_scroll = 0
