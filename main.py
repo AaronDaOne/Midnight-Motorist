@@ -94,6 +94,12 @@ NPC_Y_SPAWN_POINTS = [
   (SCREEN_SIZE[1]/20*18.8, False)
 ]
 
+class GameState:
+  EXIT = 0
+  START = 1
+  GAME = 2
+  LOST = 3
+
 def get_high_score():
   
   if not os.path.exists(SAVE_FOLDER_PATH):
@@ -207,7 +213,7 @@ def handle_movement(pos, keys, joystick, delta):
 def get_hitbox(pos, size):
   return *(pos - size), pos[0] + size[0], pos[1] + size[1]
 
-def draw(chr_loc, bg_scroll, npc_list:list[Npc], speed_txt, score_txt, hitbox, fps_txt, show_overlay, lives, spr_hit_count):
+def draw(chr_loc, bg_scroll, npc_list:list[Npc], speed_txt, score_txt, hitbox, fps_txt, lives, spr_hit_count):
   WIN.blit(BG_SPR,(bg_scroll,0))
   WIN.blit(BG_SPR,(bg_scroll+SCREEN_SIZE[0],0))
 
@@ -231,17 +237,16 @@ def draw(chr_loc, bg_scroll, npc_list:list[Npc], speed_txt, score_txt, hitbox, f
 
   # WIN.blit(fps_txt, (SCREEN_SIZE[0]-120, 30))
 
-  if show_overlay:
-    WIN.blit(OVERLAY_SPR, (0, 0))
+  WIN.blit(OVERLAY_SPR, (0, 0))
 
   pg.display.update()
 
 
-def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR_MIN_POS[0], CHR_MAX_POS[0]), ra.randint(CHR_MIN_POS[1], CHR_MAX_POS[1])), bg_scroll = 0):
+def game_loop(chr_pos: pg.Vector2, bg_scroll: float):
+  state = GameState.GAME
   CLOCK = pg.time.Clock()
 
   # character state
-  chr_pos
   player_hitbox = get_hitbox(chr_pos, CHR_SIZE)
   chr_speed = 1
   score = 0
@@ -265,13 +270,15 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
   pg.mixer.music.play(loops=-1)
   CAR_SOUND.play(loops=-1)
 
-  while run and not lost:
+  while state == GameState.GAME:
     d_time = CLOCK.tick(FPS)
     d_movement = d_time / 16
     joystick = get_joystick()
+
     if joystick != None:
       if joystick.get_button(6):
-        lost = True
+        state = GameState.START
+
     for e in pg.event.get():
       match e.type:
         
@@ -285,19 +292,13 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
               change_volume(-0.05)
 
             case pg.K_F2:
-              lost = True
-
-            case pg.K_F6:
-              pass
-              # show_overlay = not show_overlay
+              state = GameState.START
 
             case pg.K_F11:
               pg.display.toggle_fullscreen()
             
             case pg.K_ESCAPE:
-              run = False
-        case pg.QUIT:
-          run = False
+              state = GameState.EXIT
 
     keys_pressed = pg.key.get_pressed()
     chr_pos = handle_movement(chr_pos, keys_pressed, joystick, d_movement)
@@ -323,7 +324,7 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
         lives -= 1
         HIT_SOUND.play()
         if not lives:
-          lost = True
+          state = GameState.LOST
           break
         else:
           hit_spin_count = 0
@@ -360,39 +361,34 @@ def game_loop(run=True, show_overlay = True, chr_pos = pg.Vector2(ra.randint(CHR
     fps_txt = FONT.render(str(1000 // d_time), False, (255, 255, 255))
     speed_txt = FONT.render(f"{int(chr_speed*10)} MPH", False, (255, 255, 255))
 
-    draw(chr_pos, bg_scroll, npc_list, speed_txt, score_txt, player_hitbox, fps_txt, show_overlay, lives, spr_hit_count)
+    draw(chr_pos, bg_scroll, npc_list, speed_txt, score_txt, player_hitbox, fps_txt, lives, spr_hit_count)
     # print(f"FPS: {int(1000 / d_time)}" ,end="\r")
   
-  if lost:
-    pg.mixer.music.stop()
-    CAR_SOUND.stop()
-    if score > get_high_score():
-      set_high_score(score)
-    pre_game_loop(show_overlay=show_overlay, chr_pos=chr_pos)
-
+  pg.mixer.music.stop()
+  CAR_SOUND.stop()
+  
+  return state, chr_pos, score
 
 ###############################################################################################################
 
-
-def pre_game_draw(chr_loc, bg_scroll, show_overlay, d_countdown, countdown_timer, high_score):
+def pre_game_draw(chr_loc, bg_scroll, countdown, high_score):
   WIN.blit(BG_SPR,(bg_scroll,0))
   WIN.blit(BG_SPR,(bg_scroll+SCREEN_SIZE[0],0))
 
   WIN.blit(CHR_SPRS[0], chr_loc - (pg.Vector2(CHR_SPRS[0].get_size()) / 2))
 
-  if countdown_timer:
-    if d_countdown > 3:
-      WIN.blit(GO_SPR, (0, 0))
-      WIN.blit(FONT.render(f"0 MPH", False, (255, 255, 255)), (0, 30))
-      WIN.blit(FONT.render(f"SCORE: 0", False, (255, 255, 255)), (0, SCREEN_SIZE[1]-112))
-      for i in LIVES_X_POSES:
-        WIN.blit(LIVES_SPR, (i, LIVES_Y_POS))
-    elif d_countdown > 2:
-      WIN.blit(CD1_SPR, (0, 0))
-    elif d_countdown > 1:
-      WIN.blit(CD2_SPR, (0, 0))
-    elif d_countdown > 0:
-      WIN.blit(CD3_SPR, (0, 0))
+  if countdown > 3:
+    WIN.blit(GO_SPR, (0, 0))
+    WIN.blit(FONT.render(f"0 MPH", False, (255, 255, 255)), (0, 30))
+    WIN.blit(FONT.render(f"SCORE: 0", False, (255, 255, 255)), (0, SCREEN_SIZE[1]-112))
+    for i in LIVES_X_POSES:
+      WIN.blit(LIVES_SPR, (i, LIVES_Y_POS))
+  elif countdown > 2:
+    WIN.blit(CD1_SPR, (0, 0))
+  elif countdown > 1:
+    WIN.blit(CD2_SPR, (0, 0))
+  elif countdown > 0:
+    WIN.blit(CD3_SPR, (0, 0))
   else:
     WIN.blit(TITLE_GLOW_SPR, (0, -120))
     WIN.blit(TITLE_SPR, (0, -120))
@@ -403,41 +399,32 @@ def pre_game_draw(chr_loc, bg_scroll, show_overlay, d_countdown, countdown_timer
 
 
 
-  if show_overlay:
-    WIN.blit(OVERLAY_SPR, (0, 0))
+  WIN.blit(OVERLAY_SPR, (0, 0))
 
   pg.display.update()
 
-
-def pre_game_loop(
-    run = True,
-    show_overlay = True,
-    chr_pos = pg.Vector2(ra.randint(CHR_MIN_POS[0], CHR_MAX_POS[0]), ra.randint(CHR_MIN_POS[1], CHR_MAX_POS[1]))
-    ):
-  
+def pre_game_loop(chr_pos: pg.Vector2):
+  state = GameState.START
   CLOCK = pg.time.Clock()
-  chr_pos
 
-  scroll_speed = 2
   bg_scroll = 0
 
-  start_game = False
-
-  countdown_timer = 0
+  counting_down = False
+  countdown = 0
 
   played_cd0 = played_cd1 = played_cd2 = played_cd3 = False
 
   HIGH_SCORE = FONT.render("HIGH SCORE: " + str(get_high_score()).zfill(1), False, (255, 255, 255))
 
-  while run:
+  while state == GameState.START:
     d_time = CLOCK.tick_busy_loop(FPS)
     d_movement = d_time / 16
     joystick = get_joystick()
+
     if joystick != None:
       if joystick.get_button(7):
         # Start
-        if countdown_timer == 0:
-          countdown_timer = perf_counter()
+        counting_down = True
 
     for e in pg.event.get():
       match e.type:
@@ -447,31 +434,20 @@ def pre_game_loop(
 
             case pg.K_SPACE:
               # Start
-              if countdown_timer == 0:
-                countdown_timer = perf_counter()
+              counting_down = True
 
-            # case pg.K_F2:
-            #   run = False
-            #   start_game = True
             case pg.K_UP:
               change_volume(0.05)
 
             case pg.K_DOWN:
               change_volume(-0.05)
 
-            case pg.K_F6:
-              pass
-              # show_overlay = not show_overlay
-
             case pg.K_F11:
               pg.display.toggle_fullscreen()
           
             case pg.K_ESCAPE:
-              run = False
+              state = GameState.EXIT
               break
-      if e.type == pg.QUIT:
-        run = False
-        break
 
     keys_pressed = pg.key.get_pressed()
     chr_pos = handle_movement(chr_pos, keys_pressed, joystick, d_movement)
@@ -479,37 +455,52 @@ def pre_game_loop(
     if bg_scroll < -SCREEN_SIZE[0]:
       bg_scroll = 0
     else:
-      bg_scroll -= scroll_speed * d_movement
+      bg_scroll -= d_movement * 2
 
     # countdown
-    d_countdown = perf_counter() - countdown_timer
-    if countdown_timer:
-      if not played_cd0:
-        COUNTDOWN_SOUND.play()
-        played_cd0 = True
-      elif d_countdown > 1 and not played_cd1:
-        COUNTDOWN_SOUND.play()
-        played_cd1 = True
-      elif d_countdown > 2 and not played_cd2:
-        COUNTDOWN_SOUND.play()
-        played_cd2 = True
-      elif d_countdown > 3 and not played_cd3:
-        GO_SOUND.play()
-        played_cd3 = True
-        CAR_SOUND.play(-1)
-      elif d_countdown > 4:
-        start_game = True
-        run = False
-        CAR_SOUND.stop()
+    if counting_down:
+        countdown += d_time / 1000
+        if not played_cd0:
+          COUNTDOWN_SOUND.play()
+          played_cd0 = True
+        elif countdown > 1 and not played_cd1:
+          COUNTDOWN_SOUND.play()
+          played_cd1 = True
+        elif countdown > 2 and not played_cd2:
+          COUNTDOWN_SOUND.play()
+          played_cd2 = True
+        elif countdown > 3 and not played_cd3:
+          GO_SOUND.play()
+          played_cd3 = True
+          CAR_SOUND.play(-1)
+        elif countdown > 4:
+          counting_down = False
+          state = GameState.GAME
+          CAR_SOUND.stop()
 
-    pre_game_draw(chr_pos, bg_scroll, show_overlay, d_countdown, countdown_timer, HIGH_SCORE)
-
-  if start_game:
-    game_loop(show_overlay=show_overlay, chr_pos = chr_pos, bg_scroll = bg_scroll)
+    pre_game_draw(chr_pos, bg_scroll, countdown, HIGH_SCORE)
+  
+  return state, chr_pos, bg_scroll
 
 def main():
-  # game_loop()
-  pre_game_loop()
+  state = GameState.START
+  chr_pos = pg.Vector2(ra.randint(CHR_MIN_POS[0], CHR_MAX_POS[0]), ra.randint(CHR_MIN_POS[1], CHR_MAX_POS[1]))
+  bg_scroll = 0
+  score = 0
+
+  while state != GameState.EXIT:
+    
+    if state == GameState.START:
+      state, chr_pos, bg_scroll = pre_game_loop(chr_pos=chr_pos)
+    
+    if state == GameState.GAME:
+      state, chr_pos, score = game_loop(chr_pos, bg_scroll)
+
+    if state == GameState.LOST:
+      if score > get_high_score():
+        set_high_score(score)
+      score = 0
+      state = GameState.START
 
 if __name__ == "__main__":
   main()
